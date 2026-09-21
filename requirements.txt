@@ -1,0 +1,7 @@
+﻿nba_api
+pandas
+duckdb
+requests
+kerykeion
+streamlit
+plotly
