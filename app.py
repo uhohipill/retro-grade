@@ -8,7 +8,7 @@ st.set_page_config(page_title="Retro-Grade Analytics", page_icon="🏀✨", layo
 st.title("🏀✨ Retro-Grade: Astrological Sports Intelligence")
 st.markdown("*Cross-referencing franchise birth charts and player sun signs with actual NBA game logs via DuckDB.*")
 
-# Load data dynamically from DuckDB
+# Load data dynamically from DuckDB with cache safety
 @st.cache_data
 def load_data():
     try:
@@ -63,27 +63,33 @@ with tab1:
     st.subheader("Franchise Astrological Element & Scoring Performance")
     st.caption("📈 **Metric Definition:** Average Points Scored Per Game (PPG) across sampled active players on the franchise's roster during the **2023-24 NBA Season**.")
     
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        fig = px.bar(
-            filtered_df.sort_values(by='avg_pts', ascending=False),
-            x='franchise',
-            y='avg_pts',
-            color='franchise_element',
-            title="2023-24 PPG by Franchise Birth Element",
-            labels={'avg_pts': 'Points Per Game (PPG)', 'franchise': 'Franchise'}
-        )
-        st.plotly_chart(fig, width='stretch')
+    if filtered_df.empty:
+        st.warning("No franchises match the selected filter criteria.")
+    else:
+        col1, col2 = st.columns([2, 1])
         
-    with col2:
-        st.markdown("### Top Performing Team")
-        if not filtered_df.empty:
+        with col1:
+            fig = px.bar(
+                filtered_df.sort_values(by='avg_pts', ascending=False),
+                x='franchise',
+                y='avg_pts',
+                color='franchise_element',
+                title="2023-24 PPG by Franchise Birth Element",
+                labels={'avg_pts': 'Points Per Game (PPG)', 'franchise': 'Franchise'}
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col2:
+            st.markdown("### Top Performing Team")
             top_row = filtered_df.sort_values(by='avg_pts', ascending=False).iloc[0]
-            st.metric(label=f"{top_row['franchise']} ({top_row['franchise_element']})", value=f"{top_row['avg_pts']} PPG", delta=f"Sign: {top_row['franchise_sun_sign']}")
-        
-        st.markdown("### Team Breakdown Table")
-        st.dataframe(filtered_df[['franchise', 'franchise_element', 'avg_pts', 'roster_count']], width='stretch', hide_index=True)
+            st.metric(
+                label=f"{top_row['franchise']} ({top_row['franchise_element']})", 
+                value=f"{top_row['avg_pts']} PPG", 
+                delta=f"Sign: {top_row['franchise_sun_sign']}"
+            )
+            
+            st.markdown("### Team Breakdown Table")
+            st.dataframe(filtered_df[['franchise', 'franchise_element', 'avg_pts', 'roster_count']], use_container_width=True, hide_index=True)
 
 with tab2:
     st.subheader("Player Sun Sign & Scoring Distribution")
@@ -98,8 +104,8 @@ with tab2:
             title="Player Points Per Game by Astrological Sign",
             labels={'player_pts': 'Points Per Game (PPG)', 'sun_sign': 'Sun Sign'}
         )
-        st.plotly_chart(fig_player, width='stretch')
-        st.dataframe(player_df, width='stretch', hide_index=True)
+        st.plotly_chart(fig_player, use_container_width=True)
+        st.dataframe(player_df, use_container_width=True, hide_index=True)
     else:
         st.info("No player game log data available yet.")
 
@@ -123,7 +129,7 @@ with tab3:
                         "model": "llama3",
                         "prompt": prompt,
                         "stream": False
-                    }, timeout=4)
+                    }, timeout=3)
                     if response.status_code == 200:
                         commentary = response.json().get('response', '')
                 except Exception:
